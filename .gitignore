@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+
+# Virtual Environment
+AI_API/
+venv/
+env/
+
+# Uploads directory
+uploads/
+
+# IDE
+.vscode/
+.idea/
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# Local settings
+.env
+.env.local
+
+# Logs and databases
+*.log
+*.sqlite
+
+# Package manager specific
+pip-delete-this-directory.txt
+pip-wheel-metadata/
+
+# Node.js
+test/
+node_modules/
+package-lock.json
+
+# CSS output
+static/css/styles.css
+
+# Build directories
+.cache/
+dist/

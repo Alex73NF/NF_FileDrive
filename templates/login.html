@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录</title>
+    <link href="/static/css/styles.css" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+</head>
+<body class="bg-gradient-to-br from-blue-100 to-purple-200 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white p-8 rounded-2xl shadow-lg w-96 transition-all duration-300 ease-in-out hover:shadow-xl">
+        <div class="text-center mb-12">
+            <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">系统登录</h1>
+            <p class="text-gray-500 mt-4">欢迎使用文件管理系统</p>
+        </div>
+        <form id="loginForm" onsubmit="login(event)" class="space-y-8">
+            <div class="relative">
+                <input type="password" id="password" name="password" required
+                    class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                    transition-all duration-200 ease-in-out placeholder-gray-400 bg-white/50"
+                    placeholder="请输入密码">
+                <div id="error-toast" class="hidden absolute -bottom-6 left-1 text-sm font-medium text-red-600"></div>
+            </div>
+            <div id="error-toast" class="hidden h-6 text-sm font-medium text-red-600 pl-1"></div>
+            <button type="submit"
+                class="w-full mt-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-lg
+                font-medium hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2
+                focus:ring-offset-2 focus:ring-blue-500 transform transition-all duration-200
+                hover:shadow-lg hover:-translate-y-0.5">
+                登录
+            </button>
+        </form>
+    </div>
+    <script>
+        async function login(event) {
+            event.preventDefault();
+            const form = document.getElementById('loginForm');
+            const formData = new FormData(form);
+            const errorToast = document.getElementById('error-toast');
+
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    window.location.href = '/upload.html';
+                } else {
+                    showError(data.error);
+                    document.getElementById('password').value = '';
+                }
+            } catch (error) {
+                showError('发生意外错误');
+            }
+        }
+
+        function showError(message) {
+            const errorToast = document.getElementById('error-toast');
+            errorToast.textContent = message;
+            errorToast.classList.remove('hidden');
+            errorToast.classList.add('animate-shake');
+
+            setTimeout(() => {
+                errorToast.classList.add('hidden');
+            }, 3000);
+        }
+    </script>
+    <style>
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        .animate-shake {
+            animation: shake 0.5s ease-in-out;
+        }
+    </style>
+</body>
+</html>

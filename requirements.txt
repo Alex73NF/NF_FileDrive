@@ -1,0 +1,4 @@
+flask==3.0.2
+python-dotenv==1.0.1
+waitress==3.0.2
+werkzeug==3.0.1

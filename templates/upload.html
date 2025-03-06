@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件管理</title>
+    <link href="/static/css/styles.css" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+</head>
+<body class="bg-gradient-to-br from-blue-100 to-purple-200 min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-md w-full bg-white rounded-2xl shadow-lg overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl">
+        <div class="text-center mb-8 pt-6">
+            <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">文件管理</h1>
+            <div class="flex mt-6 border-b border-gray-200">
+                <button onclick="showUpload()" id="uploadTab" class="flex-1 py-4 text-center font-medium text-blue-600 border-b-2 border-blue-600 transition-all duration-200">文件上传</button>
+                <button onclick="showDownload()" id="downloadTab" class="flex-1 py-4 text-center font-medium text-gray-600 hover:text-gray-800 transition-all duration-200">文件下载</button>
+            </div>
+        </div>
+
+        <div id="uploadSection" class="p-6 transform transition-all duration-300 ease-in-out">
+            <form id="uploadForm" class="space-y-4" enctype="multipart/form-data">
+                <div class="group relative overflow-hidden rounded-xl border-2 border-dashed border-gray-300 bg-gradient-to-br from-white to-gray-50 p-8 transition-all duration-300 hover:border-blue-500 hover:from-blue-50 hover:to-purple-50 shadow-sm hover:shadow-md cursor-pointer" id="dropZone">
+                    <input type="file" id="file" name="file" required
+                        class="absolute inset-0 cursor-pointer opacity-0 z-50 w-full h-full"
+                        onchange="updateFileName(this)">
+                    <div class="text-center transform transition-transform duration-300 group-hover:scale-105">
+                        <div class="mx-auto h-20 w-20 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 p-4 shadow-inner">
+                            <svg class="h-full w-full text-blue-500 group-hover:text-purple-500 transition-colors duration-300" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                                <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                        </div>
+                        <div class="mt-8 space-y-4">
+                            <span id="fileName" class="inline-block px-8 py-4 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium text-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-0.5 cursor-pointer active:scale-95">
+                                点击选择文件
+                            </span>
+                            <p class="text-base text-gray-600 mt-4">或将文件拖放到此处</p>
+                            <p class="text-sm text-gray-400">支持文件大小：最大100MB</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="relative pt-1">
+                    <div id="progressBar" class="hidden overflow-hidden h-2 mb-4 text-xs flex rounded bg-blue-200">
+                        <div id="progress" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500 transition-all duration-300 ease-in-out" style="width: 0%"></div>
+                    </div>
+                </div>
+                <button type="submit"
+                    class="w-full transform transition-all duration-200 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-6 rounded-lg text-lg font-medium hover:from-blue-700 hover:to-purple-700 hover:shadow-lg hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:scale-95">
+                    上传文件
+                </button>
+            </form>
+            <div id="result" class="mt-4"></div>
+        </div>
+
+        <div id="downloadSection" class="hidden p-6 transform transition-all duration-300 ease-in-out">
+            <div id="fileList" class="space-y-2 h-[500px] overflow-y-auto px-2">
+                <!-- 文件列表将在这里动态加载 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-blue-500', 'from-blue-50', 'to-purple-50', 'shadow-md');
+        });
+        
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-blue-500', 'from-blue-50', 'to-purple-50', 'shadow-md');
+        });
+        
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-blue-500', 'from-blue-50', 'to-purple-50', 'shadow-md');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                document.getElementById('file').files = files;
+                updateFileName({ files: files });
+            }
+        });
+
+        function updateFileName(input) {
+            const fileName = input.files[0] ? input.files[0].name : '点击选择文件';
+            document.getElementById('fileName').textContent = fileName;
+        }
+
+        // 页面加载完成后获取文件列表
+        window.onload = function() {
+            loadFileList();
+        };
+
+        // 切换显示上传区域
+        function showUpload() {
+            document.getElementById('uploadSection').classList.remove('hidden');
+            document.getElementById('downloadSection').classList.add('hidden');
+            document.getElementById('uploadTab').classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+            document.getElementById('uploadTab').classList.remove('text-gray-600');
+            document.getElementById('downloadTab').classList.add('text-gray-600');
+            document.getElementById('downloadTab').classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+        }
+
+        // 切换显示下载区域
+        function showDownload() {
+            document.getElementById('downloadSection').classList.remove('hidden');
+            document.getElementById('uploadSection').classList.add('hidden');
+            document.getElementById('downloadTab').classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+            document.getElementById('downloadTab').classList.remove('text-gray-600');
+            document.getElementById('uploadTab').classList.add('text-gray-600');
+            document.getElementById('uploadTab').classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+            loadFileList();
+        }
+
+        // 处理文件上传
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const fileInput = document.getElementById('file');
+            const resultDiv = document.getElementById('result');
+            const progressBar = document.getElementById('progressBar');
+            const progress = document.getElementById('progress');
+
+            if (!fileInput.files[0]) {
+                showError('请选择要上传的文件');
+                return;
+            }
+
+            // 检查文件大小
+            if (fileInput.files[0].size > 100 * 1024 * 1024) {
+                showError('文件大小超过100MB限制');
+                return;
+            }
+
+            progressBar.classList.remove('hidden');
+            resultDiv.innerHTML = `<div class="p-4 mb-4 text-sm text-blue-700 bg-blue-100 rounded-lg">文件上传中，请稍候...</div>`;
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData,
+                    onUploadProgress: (progressEvent) => {
+                        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                        progress.style.width = `${percentCompleted}%`;
+                    }
+                });
+
+                if (response.status === 401) {
+                    window.location.href = '/';
+                    return;
+                }
+
+                const data = await response.json();
+                if (!response.ok) {
+                    showError(data.error || '上传失败');
+                    return;
+                }
+
+                resultDiv.innerHTML = `<div class="p-4 mb-4 text-sm text-green-700 bg-green-100 rounded-lg">
+                    文件 ${data.filename} 上传成功<br>
+                    上传时间: ${data.upload_time}
+                </div>`;
+                fileInput.value = '';
+                document.getElementById('fileName').textContent = '点击选择文件';
+                loadFileList();
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                progressBar.classList.add('hidden');
+                progress.style.width = '0%';
+            }
+        });
+
+        function showError(message) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `<div class="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg">${message}</div>`;
+        }
+
+        let currentPage = 1;
+
+        // 加载文件列表
+        async function loadFileList(page = 1) {
+            try {
+                const response = await fetch(`/file_list?page=${page}`);
+                const data = await response.json();
+                if (response.ok) {
+                    const fileListDiv = document.getElementById('fileList');
+                    fileListDiv.innerHTML = '';
+                    if (data.files.length === 0) {
+                        fileListDiv.innerHTML = '<p class="text-gray-500 text-center">暂无可下载文件</p>';
+                        return;
+                    }
+
+                    // 显示文件列表
+                    const filesContainer = document.createElement('div');
+                    filesContainer.className = 'space-y-2 mb-4';
+                    data.files.forEach(file => {
+                        const fileLink = document.createElement('div');
+                        fileLink.className = 'flex items-center justify-between p-3 bg-white rounded-lg border border-gray-100 hover:border-blue-200 hover:shadow-sm transition-all duration-200';
+                        fileLink.innerHTML = `
+                            <span class="text-gray-700 font-medium truncate flex-1 mr-4">${file}</span>
+                            <button onclick="downloadFile('${file}')"
+                                class="px-4 py-1.5 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1">
+                                下载
+                            </button>
+                        `;
+                        filesContainer.appendChild(fileLink);
+                    });
+                    fileListDiv.appendChild(filesContainer);
+
+                    // 添加分页控件
+                    if (data.total_pages > 1) {
+                        const paginationDiv = document.createElement('div');
+                        paginationDiv.className = 'flex justify-center items-center space-x-4 mt-6';
+
+                        // 上一页按钮
+                        const prevButton = document.createElement('button');
+                        prevButton.className = `inline-flex items-center px-4 py-2 rounded-md text-sm font-medium ${page > 1 ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-100 text-gray-400 cursor-not-allowed'} transition-colors duration-200`;
+                        prevButton.innerHTML = '<svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>上一页';
+                        prevButton.disabled = page <= 1;
+                        prevButton.onclick = () => loadFileList(page - 1);
+
+                        // 页码信息
+                        const pageInfo = document.createElement('span');
+                        pageInfo.className = 'text-gray-600 font-medium';
+                        pageInfo.textContent = `${page} / ${data.total_pages}`;
+
+                        // 下一页按钮
+                        const nextButton = document.createElement('button');
+                        nextButton.className = `inline-flex items-center px-4 py-2 rounded-md text-sm font-medium ${page < data.total_pages ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-100 text-gray-400 cursor-not-allowed'} transition-colors duration-200`;
+                        nextButton.innerHTML = '下一页<svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>';
+                        nextButton.disabled = page >= data.total_pages;
+                        nextButton.onclick = () => loadFileList(page + 1);
+
+                        paginationDiv.appendChild(prevButton);
+                        paginationDiv.appendChild(pageInfo);
+                        paginationDiv.appendChild(nextButton);
+                        fileListDiv.appendChild(paginationDiv);
+                    }
+
+                    currentPage = page;
+                } else {
+                    throw new Error(data.error || '获取文件列表失败');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('fileList').innerHTML =
+                    `<div class="p-4 text-sm text-red-700 bg-red-100 rounded-lg">获取文件列表失败: ${error.message}</div>`;
+            }
+        }
+
+        // 下载文件
+        async function downloadFile(filename) {
+            try {
+                const response = await fetch(`/download?filename=${encodeURIComponent(filename)}`);
+                if (!response.ok) {
+                    throw new Error('下载失败');
+                }
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } catch (error) {
+                alert('下载失败: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>
