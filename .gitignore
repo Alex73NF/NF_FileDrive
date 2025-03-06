@@ -40,3 +40,7 @@ static/css/styles.css
 # Build directories
 .cache/
 dist/
+
+# Uploads directory - track directory but ignore contents
+uploads/*
+!uploads/.gitignore
