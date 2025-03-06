@@ -9,9 +9,6 @@ AI_API/
 venv/
 env/
 
-# Uploads directory
-uploads/
-
 # IDE
 .vscode/
 .idea/
