@@ -11,7 +11,7 @@
 python -m venv venv
 
 # 激活虚拟环境（Windows）
-venv\Scripts\activate
+.\venv\Scripts\Activate.ps1
 
 # 激活虚拟环境（Linux/macOS）
 source venv/bin/activate
