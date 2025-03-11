@@ -64,16 +64,18 @@ python app.py
 1. 确保已设置正确的环境变量：
    - SYSTEM_PASSWORD：系统登录密码
    - UPLOAD_FOLDER：文件上传目录（可选）
+   - FLASK_DEBUG：设置为False以使用Waitress服务器
 
 2. 编译前端资源：
    ```bash
    npm run build:css
    ```
 
-3. 使用Waitress启动服务：
+3. 启动应用：
    ```bash
-   waitress-serve --port=8080 --call app:create_app
+   python app.py
    ```
+   注意：确保.env文件中设置了FLASK_DEBUG=False，这样应用将使用Waitress服务器运行。
 
 4. 配置Nginx反向代理（推荐）：
    ```nginx
