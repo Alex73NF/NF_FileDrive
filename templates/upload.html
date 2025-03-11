@@ -6,9 +6,14 @@
     <title>文件管理</title>
     <link href="/static/css/styles.css" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <!-- 添加响应式设计的元标签 -->
+    <meta name="description" content="文件管理系统 - 上传、下载、管理您的文件">
+    <meta name="theme-color" content="#3b82f6">
+    <!-- 添加字体图标库 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
 </head>
 <body class="bg-gradient-to-br from-blue-100 to-purple-200 min-h-screen flex items-center justify-center p-4">
-    <div class="max-w-md w-full bg-white rounded-2xl shadow-lg overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl">
+    <div class="max-w-3xl w-full bg-white rounded-2xl shadow-lg overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl">
         <div class="text-center mb-8 pt-6">
             <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">文件管理</h1>
             <div class="flex mt-6 border-b border-gray-200">
@@ -60,17 +65,17 @@
 
     <script>
         const dropZone = document.getElementById('dropZone');
-        
+
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
             dropZone.classList.add('border-blue-500', 'from-blue-50', 'to-purple-50', 'shadow-md');
         });
-        
+
         dropZone.addEventListener('dragleave', (e) => {
             e.preventDefault();
             dropZone.classList.remove('border-blue-500', 'from-blue-50', 'to-purple-50', 'shadow-md');
         });
-        
+
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
             dropZone.classList.remove('border-blue-500', 'from-blue-50', 'to-purple-50', 'shadow-md');
@@ -136,21 +141,38 @@
             resultDiv.innerHTML = `<div class="p-4 mb-4 text-sm text-blue-700 bg-blue-100 rounded-lg">文件上传中，请稍候...</div>`;
 
             try {
-                const response = await fetch('/upload', {
-                    method: 'POST',
-                    body: formData,
-                    onUploadProgress: (progressEvent) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', '/upload');
+
+                // 添加上传进度事件监听
+                xhr.upload.addEventListener('progress', (progressEvent) => {
+                    if (progressEvent.lengthComputable) {
                         const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
                         progress.style.width = `${percentCompleted}%`;
+                        progress.textContent = `${percentCompleted}%`;
                     }
                 });
+
+                // 设置完成回调
+                xhr.onload = function() {
+                    const response = {
+                        ok: xhr.status >= 200 && xhr.status < 300,
+                        status: xhr.status
+                    };
+
+                    let data;
+                    try {
+                        data = JSON.parse(xhr.responseText);
+                    } catch (e) {
+                        showError('解析响应失败');
+                        return;
+                    }
 
                 if (response.status === 401) {
                     window.location.href = '/';
                     return;
                 }
 
-                const data = await response.json();
                 if (!response.ok) {
                     showError(data.error || '上传失败');
                     return;
@@ -163,11 +185,30 @@
                 fileInput.value = '';
                 document.getElementById('fileName').textContent = '点击选择文件';
                 loadFileList();
+                    resultDiv.innerHTML = `<div class="p-4 mb-4 text-sm text-green-700 bg-green-100 rounded-lg">
+                        文件 ${data.filename} 上传成功<br>
+                        上传时间: ${data.upload_time}
+                    </div>`;
+                    fileInput.value = '';
+                    document.getElementById('fileName').textContent = '点击选择文件';
+                    loadFileList();
+                };
+
+                // 设置错误处理
+                xhr.onerror = function() {
+                    showError('网络错误，上传失败');
+                };
+
+                // 发送请求
+                xhr.send(formData);
             } catch (error) {
                 showError(error.message);
             } finally {
-                progressBar.classList.add('hidden');
-                progress.style.width = '0%';
+                setTimeout(() => {
+                    progressBar.classList.add('hidden');
+                    progress.style.width = '0%';
+                    progress.textContent = '';
+                }, 1000);
             }
         });
 
@@ -180,10 +221,12 @@
 
         // 加载文件列表
         async function loadFileList(page = 1) {
-            try {
-                const response = await fetch(`/file_list?page=${page}`);
-                const data = await response.json();
-                if (response.ok) {
+            // 返回Promise以便可以在其他地方使用.then()
+            return new Promise(async (resolve, reject) => {
+                try {
+                    const response = await fetch(`/file_list?page=${page}`);
+                    const data = await response.json();
+                    if (response.ok) {
                     const fileListDiv = document.getElementById('fileList');
                     fileListDiv.innerHTML = '';
                     if (data.files.length === 0) {
@@ -197,13 +240,51 @@
                     data.files.forEach(file => {
                         const fileLink = document.createElement('div');
                         fileLink.className = 'flex items-center justify-between p-3 bg-white rounded-lg border border-gray-100 hover:border-blue-200 hover:shadow-sm transition-all duration-200';
+                        fileLink.setAttribute('data-filename', file.name);
+
+                        // 根据文件类型添加不同的图标
+                        let fileIcon = '';
+                        switch(file.type) {
+                            case 'image':
+                                fileIcon = '<i class="fas fa-file-image text-blue-500 mr-4"></i>';
+                                break;
+                            case 'video':
+                                fileIcon = '<i class="fas fa-file-video text-purple-500 mr-4"></i>';
+                                break;
+                            case 'audio':
+                                fileIcon = '<i class="fas fa-file-audio text-green-500 mr-4"></i>';
+                                break;
+                            case 'document':
+                                fileIcon = '<i class="fas fa-file-alt text-yellow-500 mr-4"></i>';
+                                break;
+                            case 'archive':
+                                fileIcon = '<i class="fas fa-file-archive text-red-500 mr-4"></i>';
+                                break;
+                            default:
+                                fileIcon = '<i class="fas fa-file text-gray-500 mr-4"></i>';
+                        }
                         fileLink.innerHTML = `
-                            <span class="text-gray-700 font-medium truncate flex-1 mr-4">${file}</span>
-                            <button onclick="downloadFile('${file}')"
-                                class="px-4 py-1.5 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1">
-                                下载
-                            </button>
-                        `;
+                    <div class="flex items-center overflow-hidden group">
+                        ${fileIcon}
+                        <div class="truncate">
+                            <div class="text-gray-700 font-medium truncate filename-display">
+                                ${file.name}
+                            </div>
+                            <div class="text-gray-400 text-sm">${file.size_human} · ${file.modified}</div>
+                        </div>
+                    </div>
+                    <div class="flex space-x-4">
+                        ${file.type === 'image' ? `<button onclick="previewFile('${file.name}')" class="text-blue-500 hover:text-blue-600 transition-colors duration-200">
+                            <i class="fas fa-eye"></i>
+                        </button>` : ''}
+                        <button onclick="downloadFile('${file.name}', event)" class="text-green-500 hover:text-green-600 transition-colors duration-200">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button onclick="deleteFile('${file.name}')" class="text-red-500 hover:text-red-600 transition-colors duration-200">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                `;
                         filesContainer.appendChild(fileLink);
                     });
                     fileListDiv.appendChild(filesContainer);
@@ -239,6 +320,8 @@
                     }
 
                     currentPage = page;
+                    // 成功完成，解析Promise
+                    resolve();
                 } else {
                     throw new Error(data.error || '获取文件列表失败');
                 }
@@ -246,12 +329,21 @@
                 console.error('Error:', error);
                 document.getElementById('fileList').innerHTML =
                     `<div class="p-4 text-sm text-red-700 bg-red-100 rounded-lg">获取文件列表失败: ${error.message}</div>`;
+                // 出错时拒绝Promise
+                reject(error);
             }
+        });
         }
 
         // 下载文件
-        async function downloadFile(filename) {
+        async function downloadFile(filename, event) {
             try {
+                // 阻止事件冒泡
+                if (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+
                 const response = await fetch(`/download?filename=${encodeURIComponent(filename)}`);
                 if (!response.ok) {
                     throw new Error('下载失败');
@@ -268,6 +360,158 @@
                 document.body.removeChild(a);
             } catch (error) {
                 alert('下载失败: ' + error.message);
+            }
+        }
+
+        // 处理文件删除
+        function deleteFile(filename) {
+            if (confirm(`确定要永久删除 ${filename} 吗？`)) {
+                fetch('/delete', {
+                    method: 'DELETE',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ filename: filename })
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error('删除失败');
+                    return response.json();
+                })
+                .then(data => {
+                    // 先刷新文件列表，然后显示成功消息
+                    loadFileList().then(() => {
+                        // 文件列表加载完成后显示成功消息
+                        showSuccess(data.message || '文件删除成功');
+                    });
+                })
+                .catch(error => showError(error.message));
+            }
+        }
+
+        // 显示成功提示
+        function showSuccess(message) {
+            // 判断当前是哪个区域可见
+            const isUploadVisible = !document.getElementById('uploadSection').classList.contains('hidden');
+            // 设置消息显示时间为8秒
+            const messageDisplayTime = 8000;
+
+            if (isUploadVisible) {
+                // 如果是上传区域可见，则在上传区域显示消息
+                const resultDiv = document.getElementById('result');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = "p-4 mb-4 text-sm text-green-700 bg-green-100 rounded-lg";
+                messageDiv.innerHTML = message;
+                resultDiv.innerHTML = '';
+                resultDiv.appendChild(messageDiv);
+
+                // 设置定时器，8秒后移除消息
+                setTimeout(() => {
+                    if (resultDiv.contains(messageDiv)) {
+                        resultDiv.removeChild(messageDiv);
+                    }
+                }, messageDisplayTime);
+            } else {
+                // 如果是下载区域可见，则在下载区域显示消息
+                const fileListDiv = document.getElementById('fileList');
+
+                // 创建一个固定位置的消息容器，如果不存在则创建
+                let messageContainer = document.getElementById('messageContainer');
+                if (!messageContainer) {
+                    messageContainer = document.createElement('div');
+                    messageContainer.id = 'messageContainer';
+                    messageContainer.className = 'sticky top-0 z-10 mb-4';
+                    // 将消息容器插入到文件列表的最前面
+                    fileListDiv.parentNode.insertBefore(messageContainer, fileListDiv);
+                }
+
+                // 创建消息元素
+                const messageDiv = document.createElement('div');
+                messageDiv.className = "p-4 mb-4 text-sm text-green-700 bg-green-100 rounded-lg shadow-md";
+                messageDiv.innerHTML = message;
+
+                // 清空消息容器并添加新消息
+                messageContainer.innerHTML = '';
+                messageContainer.appendChild(messageDiv);
+
+                // 设置定时器，8秒后移除消息
+                setTimeout(() => {
+                    if (messageContainer.contains(messageDiv)) {
+                        messageContainer.removeChild(messageDiv);
+                    }
+                }, messageDisplayTime);
+            }
+        }
+
+        // 预览文件
+        async function previewFile(filename) {
+            try {
+                // 创建预览模态框
+                let previewModal = document.getElementById('previewModal');
+                if (!previewModal) {
+                    previewModal = document.createElement('div');
+                    previewModal.id = 'previewModal';
+                    previewModal.className = 'fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50';
+                    previewModal.style.display = 'none';
+                    document.body.appendChild(previewModal);
+                }
+
+                // 显示加载中
+                previewModal.innerHTML = `
+                    <div class="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-auto relative">
+                        <button id="closePreview" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                        <div class="flex items-center justify-center h-64">
+                            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                        </div>
+                    </div>
+                `;
+
+                // 显示模态框
+                previewModal.style.display = 'flex';
+
+                // 添加关闭按钮事件
+                document.getElementById('closePreview').addEventListener('click', () => {
+                    previewModal.style.display = 'none';
+                });
+
+                // 获取文件预览信息
+                const response = await fetch(`/preview?filename=${encodeURIComponent(filename)}`);
+                if (!response.ok) {
+                    throw new Error('获取预览信息失败');
+                }
+
+                const data = await response.json();
+                let previewContent = '';
+
+                // 只处理图片类型的预览
+                if (data.type === 'image') {
+                    previewContent = `
+                        <h2 class="text-xl font-bold mb-4 text-center">${data.name}</h2>
+                        <img src="${data.preview_url}" alt="${data.name}" class="max-w-full max-h-[70vh] mx-auto">
+                        <div class="mt-4 text-sm text-gray-500 text-center">${data.size} · ${data.modified}</div>
+                    `;
+
+                    // 更新模态框内容
+                    previewModal.innerHTML = `
+                        <div class="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-auto relative">
+                            <button id="closePreview" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800">
+                                <i class="fas fa-times text-xl"></i>
+                            </button>
+                            ${previewContent}
+                        </div>
+                    `;
+
+                    // 重新添加关闭按钮事件
+                    document.getElementById('closePreview').addEventListener('click', () => {
+                        previewModal.style.display = 'none';
+                    });
+                } else {
+                    // 如果不是图片类型，关闭预览模态框
+                    previewModal.style.display = 'none';
+                }
+
+            } catch (error) {
+                console.error('预览错误:', error);
+                alert('预览失败: ' + error.message);
             }
         }
     </script>
