@@ -8,7 +8,7 @@ class Config:
     """应用配置类"""
     # 基础配置
     SECRET_KEY = os.getenv('FLASK_SECRET_KEY', os.urandom(24))
-    DEBUG = False  # 关闭调试模式
+    DEBUG = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'  # 从环境变量读取调试模式配置
 
     # 上传配置
     UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', 'uploads')

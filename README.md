@@ -13,6 +13,9 @@ python -m venv venv
 # 激活虚拟环境（Windows）
 venv\Scripts\activate
 
+# 激活虚拟环境（Linux/macOS）
+source venv/bin/activate
+
 # 安装Python依赖
 pip install -r requirements.txt
 
@@ -24,11 +27,9 @@ npm install
 1. 复制example.env重命名为.env
 2. 修改配置项：
 ```
-# 系统密码
-SYSTEM_PASSWORD=your_password
-
-# 密码模式（env:仅环境变量 fixed:固定密码 both:两者兼用）
-PASSWORD_MODE=both
+# 系统密码（必需配置）
+# 请设置一个安全的密码，用于系统登录
+SYSTEM_PASSWORD=your_secure_password
 
 # 上传目录
 UPLOAD_FOLDER=uploads
@@ -36,18 +37,19 @@ UPLOAD_FOLDER=uploads
 
 ## 运行步骤
 ```bash
-# 开发模式
-flask run --port 8080
+# 开发环境：实时编译Tailwind CSS
+npm run watch:css
 
-# 生产模式（使用Waitress）
-waitress-serve --port=8080 --call app:create_app
-
-# 实时编译Tailwind CSS
-npx tailwindcss -i ./static/css/main.css -o ./static/css/styles.css --watch
-
-# 生产环境编译CSS
+# 生产环境：编译CSS
 npm run build:css
+
+# 启动应用
+python app.py
 ```
+
+注意：应用启动模式由.env文件中的FLASK_DEBUG环境变量控制：
+- 当FLASK_DEBUG=True时，使用Flask开发服务器
+- 当FLASK_DEBUG=False或未设置时，使用Waitress服务器
 
 ## 常见问题
 ### 无法上传文件
@@ -59,11 +61,25 @@ npm run build:css
 - 检查static/css/styles.css是否存在
 
 ## 生产部署
-推荐使用Nginx反向代理，配置示例：
-```nginx
-location / {
-    proxy_pass http://localhost:8080;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-}
-```
+1. 确保已设置正确的环境变量：
+   - SYSTEM_PASSWORD：系统登录密码
+   - UPLOAD_FOLDER：文件上传目录（可选）
+
+2. 编译前端资源：
+   ```bash
+   npm run build:css
+   ```
+
+3. 使用Waitress启动服务：
+   ```bash
+   waitress-serve --port=8080 --call app:create_app
+   ```
+
+4. 配置Nginx反向代理（推荐）：
+   ```nginx
+   location / {
+       proxy_pass http://localhost:8080;
+       proxy_set_header Host $host;
+       proxy_set_header X-Real-IP $remote_addr;
+   }
+   ```

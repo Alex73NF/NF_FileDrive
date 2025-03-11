@@ -1,5 +1,6 @@
 {
   "scripts": {
+    "watch:css": "npx tailwindcss -i ./static/css/main.css -o ./static/css/styles.css --watch",
     "build:css": "npx tailwindcss -i ./static/css/main.css -o ./static/css/styles.css --minify"
   },
   "devDependencies": {
